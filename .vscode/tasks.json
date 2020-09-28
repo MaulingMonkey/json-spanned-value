@@ -66,12 +66,12 @@
 
 
         { "label": "3", "dependsOn": [
-            "cargo +1.46.0 test --frozen",
+            "cargo +1.46.0 test --frozen --all-features",
             "cargo build --frozen --release --no-default-features",
         ]},
         {
-            "label":            "cargo +1.46.0 test --frozen",
-            "command":          "cargo +1.46.0 test --frozen",
+            "label":            "cargo +1.46.0 test --frozen --all-features",
+            "command":          "cargo +1.46.0 test --frozen --all-features",
             "presentation":     { "group": "3" },
             "problemMatcher":   { "base": "$rustc", "owner": "cargo test", "source": "cargo test" },
         },

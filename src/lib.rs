@@ -5,13 +5,14 @@ use serde_json::error::{Result as SJResult};
 use serde::de;
 
 use std::borrow::Borrow;
-use std::collections::BTreeMap;
+#[cfg_attr(feature = "indexmap", allow(unused_imports))] use std::collections::BTreeMap;
 use std::cmp::{PartialEq, Eq, PartialOrd, Ord, Ordering};
 use std::cell::{Cell, RefCell};
 use std::convert::*;
 use std::fmt::{self, Debug, Formatter};
 use std::hash::{Hash, Hasher};
 use std::io::{self, Read};
+use std::marker::PhantomData;
 use std::ops::{Deref, Drop};
 use std::rc::Rc;
 
@@ -180,31 +181,30 @@ impl<'de> de::Deserialize<'de> for Value {
 #[cfg(not(feature = "indexmap"))] type MapImpl<K, V> = BTreeMap<K, V>;
 #[cfg(    feature = "indexmap" )] type MapImpl<K, V> = indexmap::IndexMap<K, V>;
 
-pub struct Map<K, V> {
+pub struct Map<K: Hash + Ord, V> {
     map: MapImpl<K, V>
 }
 
-impl Map<Spanned<String>, Spanned<Value>> {
+impl<K: Hash + Ord, V> Map<K, V> {
     pub fn new() -> Self { Map { map: MapImpl::new() } }
     pub fn clear(&mut self) { self.map.clear() }
-    pub fn insert(&mut self, k: Spanned<String>, v: Spanned<Value>) -> Option<Spanned<Value>> { self.map.insert(k, v) }
+    pub fn insert(&mut self, k: K, v: V) -> Option<V> { self.map.insert(k, v) }
     pub fn len(&self) -> usize { self.map.len() }
 
-    pub fn keys         (&self)     -> impl Iterator<Item = &Spanned<String>>                           { self.map.keys().into_iter() }
-    pub fn values       (&self)     -> impl Iterator<Item = &Spanned<Value>>                            { self.map.values().into_iter() }
-    pub fn values_mut   (&mut self) -> impl Iterator<Item = &mut Spanned<Value>>                        { self.map.values_mut().into_iter() }
-    pub fn iter         (&self)     -> impl Iterator<Item = (&Spanned<String>, &Spanned<Value>)>        { self.map.iter() }
-    pub fn iter_mut     (&mut self) -> impl Iterator<Item = (&Spanned<String>, &mut Spanned<Value>)>    { self.map.iter_mut() }
+    pub fn keys         (&self)     -> impl Iterator<Item = &K>             { self.map.keys().into_iter() }
+    pub fn values       (&self)     -> impl Iterator<Item = &V>             { self.map.values().into_iter() }
+    pub fn values_mut   (&mut self) -> impl Iterator<Item = &mut V>         { self.map.values_mut().into_iter() }
+    pub fn iter         (&self)     -> impl Iterator<Item = (&K, &V)>       { self.map.iter() }
+    pub fn iter_mut     (&mut self) -> impl Iterator<Item = (&K, &mut V)>   { self.map.iter_mut() }
 }
 
-impl<'de> de::Deserialize<'de> for Map<Spanned<String>, Spanned<Value>> {
+impl<'de, K: Hash + Ord + de::Deserialize<'de>, V: de::Deserialize<'de>> de::Deserialize<'de> for Map<K, V> {
     fn deserialize<D: de::Deserializer<'de>>(deserializer: D) -> Result<Self, D::Error> {
-        struct MapVisitor;
-        impl<'de> de::Visitor<'de> for MapVisitor {
-            type Value = Map<Spanned<String>, Spanned<Value>>;
+        struct MapVisitor<'de, K: Ord + de::Deserialize<'de>, V: de::Deserialize<'de>>(PhantomData<(&'de (), K, V)>);
+        impl<'de, K: Hash + Ord + de::Deserialize<'de>, V: de::Deserialize<'de>> de::Visitor<'de> for MapVisitor<'de, K, V> {
+            type Value = Map<K, V>;
             fn expecting(&self, formatter: &mut Formatter) -> fmt::Result { formatter.write_str("a JSON object") }
-
-            fn visit_map<V: de::MapAccess<'de>>(self, mut visitor: V) -> Result<Self::Value, V::Error> {
+            fn visit_map<MA: de::MapAccess<'de>>(self, mut visitor: MA) -> Result<Self::Value, MA::Error> {
                 let mut values = Map::new();
                 while let Some(key) = visitor.next_key()? {
                     let value = visitor.next_value()?;
@@ -214,7 +214,7 @@ impl<'de> de::Deserialize<'de> for Map<Spanned<String>, Spanned<Value>> {
             }
         }
 
-        deserializer.deserialize_any(MapVisitor)
+        deserializer.deserialize_any(MapVisitor::<'de, K, V>(PhantomData))
     }
 }
 
