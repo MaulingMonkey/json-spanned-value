@@ -5,14 +5,14 @@ use serde::Deserialize;
 fn do_test_obj(json: &str, expected: Vec<(&str, &str, fn(&Value) -> bool)>) {
     let expected = expected.into_iter().map(|(k, v, v2)| (k, (v, v2))).collect::<BTreeMap<_, _>>();
     let parsed : Value = super::from_str(json).unwrap();
-    for (key, val) in parsed.into_object().unwrap().iter() {
+    for (key, val) in parsed.into_object().unwrap() {
         let key_raw = json.get(key.start .. key.end).unwrap_or_else(|| panic!("Unable to fetch key_raw for key: {:?}", key));
         let val_raw = json.get(val.start .. val.end).unwrap_or_else(|| panic!("Unable to fetch val_raw for val: {:?}", val));
         let (expected_raw_val, expected_val) = expected.get(key.as_str()).unwrap_or_else(|| panic!("Did not expect key: {:?}", key));
 
         assert_eq!(key_raw, format!("{:?}", key));
         assert_eq!(val_raw, *expected_raw_val);
-        assert!(expected_val(val), "Failed to match condition for val: {:?}", val);
+        assert!(expected_val(&val), "Failed to match condition for val: {:?}", val);
     }
 }
 
