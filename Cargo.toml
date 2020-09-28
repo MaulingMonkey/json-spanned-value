@@ -14,6 +14,9 @@ keywords                                = ["json", "serde", "serialization", "sp
 categories                              = ["encoding"]
 exclude                                 = [".vscode/*", "examples/*"]
 
+[badges]
+travis-ci                               = { repository = "MaulingMonkey/json-spanned-value", branch = "master" }
+
 [features]
 default                                 = []
 preserve_order                          = ["indexmap"]
