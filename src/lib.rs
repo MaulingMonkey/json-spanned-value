@@ -1,4 +1,5 @@
 #![allow(dead_code)]
+#![forbid(unsafe_code)]
 
 use serde_json::error::{Result as SJResult};
 
