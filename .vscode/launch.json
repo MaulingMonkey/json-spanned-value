@@ -1,0 +1,15 @@
+{
+    "version": "0.2.0",
+    "configurations": [
+        {
+            "name":                     "examples: demo: debug",
+            "request":                  "launch",
+            "type":                     "cppvsdbg",
+            "preLaunchTask":            "cargo build --example demo",
+            "internalConsoleOptions":   "openOnSessionStart",
+            "enableDebugHeap":          true,
+            "program":                  "${workspaceFolder}/target/debug/examples/demo.exe",
+            "cwd":                      "${workspaceFolder}",
+        },
+    ]
+}
