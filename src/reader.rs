@@ -43,7 +43,7 @@ impl<B: Buffer> Read for Reader<B> {
         if shared.start.get().0 <= pos1 { // Avoid O(nn) behavior for "     ..."
             let mut start = pos1;
             while b": \r\n\t".contains(src.get(start).unwrap_or(&b'\0')) { start += 1; }
-            shared.start.set((start, src[start]));
+            shared.start.set((start, *src.get(start).unwrap_or(&b'\0')));
         }
 
         Ok(1)
