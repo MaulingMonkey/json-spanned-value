@@ -26,14 +26,16 @@ impl<B: Buffer> Read for Reader<B> {
         shared.pos.set((pos2, next));
         out[0] = next;
 
-        let start = if next == b'\"' {
-            pos1
-        } else {
-            let mut start = pos1;
-            while b": \r\n\t".contains(src.get(start).unwrap_or(&b'\0')) { start += 1; }
-            start
-        };
-        shared.start.set((start, src[start]));
+        if shared.start.get().0 <= pos1 {
+            let start = if next == b'\"' {
+                pos1
+            } else {
+                let mut start = pos1;
+                while b": \r\n\t".contains(src.get(start).unwrap_or(&b'\0')) { start += 1; }
+                start
+            };
+            shared.start.set((start, src[start]));
+        }
 
         Ok(1)
     }
