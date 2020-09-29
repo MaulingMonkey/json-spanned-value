@@ -66,7 +66,7 @@ impl<'de, V: Deserialize<'de>> Deserialize<'de> for Spanned<V> {
     fn deserialize<D: Deserializer<'de>>(deserializer: D) -> Result<Self, D::Error> {
         let (start, start_ch)   = start().unwrap_or((0, '\0'));
         let value               = V::deserialize(deserializer)?;
-        let (end, _end_ch)      = end(!"[{ntf\"".contains(start_ch)).unwrap_or((0, '\0'));
+        let end                 = end(!"[{ntf\"".contains(start_ch)).unwrap_or(0);
         Ok(Self { start, end, value })
     }
 }

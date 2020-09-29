@@ -6,16 +6,13 @@ use std::rc::Rc;
 
 #[derive(Default)]
 pub(crate) struct Shared {
-    pub(crate) last_read:  Cell<u8>,
     pub(crate) start:      Cell<(usize, u8)>,
-    pub(crate) prev:       Cell<(usize, u8)>,
-    pub(crate) pos:        Cell<(usize, u8)>,
+    pub(crate) pos:        Cell<usize>,
 }
 
 thread_local! { static SHARED : RefCell<Option<Rc<Shared>>> = RefCell::new(None); }
-pub(crate) fn last_read()      -> Option<u8>    { SHARED.with(|s| s.borrow().as_ref().map(|s| s.last_read.get())) }
 pub(crate) fn start()          -> Option<(usize, char)> { SHARED.with(|s| s.borrow().as_ref().map(|s| s.start.get())).map(|(s,c)| (s, c as char)) }
-pub(crate) fn end(prev: bool)  -> Option<(usize, char)> { SHARED.with(|s| s.borrow().as_ref().map(|s| if prev { s.prev.get() } else { s.pos.get() })).map(|(s,c)| (s, c as char)) }
+pub(crate) fn end(prev: bool)  -> Option<usize> { SHARED.with(|s| s.borrow().as_ref().map(|s| s.pos.get().saturating_sub(prev as usize))) }
 
 
 
