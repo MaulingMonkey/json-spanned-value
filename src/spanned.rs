@@ -14,7 +14,7 @@ use std::cmp::{PartialEq, Eq, PartialOrd, Ord, Ordering};
 use std::convert::*;
 use std::fmt::{self, Debug, Formatter};
 use std::hash::{Hash, Hasher};
-use std::ops::Deref;
+use std::ops::{Deref, Range};
 
 
 
@@ -39,6 +39,10 @@ impl<V> Spanned<V> {
     /// Get the start .. end byte offset of this value as a (start, end) tuple.
     /// Likely `(0, 0)` unless loaded through [crate::from_*](crate::from_slice).
     pub fn span(&self) -> (usize, usize) { (self.start, self.end) }
+
+    /// Get the start .. end byte offset of this value as a start .. end [Range].
+    /// Likely `0 .. 0` unless loaded through [crate::from_*](crate::from_slice).
+    pub fn range(&self) -> Range<usize> { self.start .. self.end }
 
     /// Get the interior value of the spanned region as an owned value.
     pub fn into_inner(self) -> V { self.value }
