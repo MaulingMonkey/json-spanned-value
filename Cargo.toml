@@ -2,7 +2,7 @@
 
 [package]
 name                                    = "json-spanned-value"
-version                                 = "0.0.0-git"
+version                                 = "0.1.3"
 authors                                 = ["MaulingMonkey <git@maulingmonkey.com>"]
 repository                              = "https://github.com/MaulingMonkey/json-spanned-value.git"
 documentation                           = "https://docs.rs/json-spanned-value/"
