@@ -54,8 +54,11 @@ fn do_test_obj(json: &str, expected: Vec<(&str, &str, fn(&Value) -> bool)>) {
 }
 
 #[test] fn duplicate_keys_deny() {
+    let json = "{\"a\": 1, \"a\": 2}";
     let settings = Settings { allow_duplicate_keys: false, ..Settings::default() };
-    from_str_with_settings::<spanned::Object>("{\"a\": 1, \"a\": 2}", &settings).unwrap_err();
+    let err = from_str_with_settings::<spanned::Object>(json, &settings).unwrap_err();
+    let until_err = &json[..err.offset_within(json).unwrap_or(json.len()-1)];
+    assert!(until_err.ends_with("\"a\""), "until_err: {:?}", until_err);
 }
 
 #[test] fn struct_plain() {

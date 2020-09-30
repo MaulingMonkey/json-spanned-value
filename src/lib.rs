@@ -17,6 +17,7 @@
 #![forbid(missing_docs)]
 #![forbid(unsafe_code)]
 
+mod error_ext;      pub use error_ext::*;
 mod map;            pub use map::Map;
 mod reader;         pub(crate) use reader::*;
 mod settings;       pub use settings::*;
