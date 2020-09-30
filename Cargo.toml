@@ -12,7 +12,7 @@ readme                                  = "Readme.md"
 description                             = "Track the origin of your json values for better error reporting!"
 keywords                                = ["json", "serde", "serialization", "spans"]
 categories                              = ["encoding"]
-exclude                                 = [".vscode/*", "examples/*"]
+exclude                                 = [".vscode/*"]
 
 [badges]
 travis-ci                               = { repository = "MaulingMonkey/json-spanned-value", branch = "master" }
@@ -28,7 +28,7 @@ serde_json                              = "1.0"
 
 [dev-dependencies]
 serde                                   = { version = "1.0", features = ["derive"] }
-
+codespan-reporting                      = "0.9.5"
 
 [package.metadata.docs.rs]
 all-features                            = true

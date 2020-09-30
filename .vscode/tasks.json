@@ -18,7 +18,7 @@
         {
             "label":        "build",
             "dependsOrder": "sequence",
-            "dependsOn":    ["0", "1", "2", "3"],
+            "dependsOn":    ["0", "1", "2", "3", "4"],
             "group":        { "kind": "build", "isDefault": true }
         },
 
@@ -80,6 +80,35 @@
             "command":          "cargo build --frozen --release --no-default-features",
             "presentation":     { "group": "3" },
             "problemMatcher":   { "base": "$rustc", "owner": "cargo build --no-default-features", "source": "cargo build --no-default-features" },
+        },
+
+
+
+        { "label": "4", "dependsOn": [
+            "cargo run --frozen --example demo",
+        ]},
+        {
+            "label":            "cargo run --frozen --example demo",
+            "command":          "cargo run --frozen --example demo",
+            "presentation":     { "group": "4" },
+            "problemMatcher": {
+                "pattern": [
+                    {
+                        "regexp": "^(bug|error|warning|warn|note|help)(?:\\[(.*?)\\])?: (.*)$",
+                        "severity": 1,
+                        "code": 2,
+                        "message": 3
+                    },
+                    {
+                        "regexp": "^[\\s┌─\\->=]*(.*?):(\\d*):(\\d*)\\s*$",
+                        "file": 1,
+                        "line": 2,
+                        "column": 3
+                    }
+                ],
+                "owner":    "cargo run --frozen --example demo",
+                "source":   "cargo run --frozen --example demo",
+            },
         },
 
 
