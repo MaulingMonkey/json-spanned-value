@@ -12,7 +12,7 @@ use serde::de::*;
 use std::borrow::Borrow;
 use std::cmp::{PartialEq, Eq, PartialOrd, Ord, Ordering};
 use std::convert::*;
-use std::fmt::{self, Debug, Formatter};
+use std::fmt::{self, Debug, Display, Formatter};
 use std::hash::{Hash, Hasher};
 use std::ops::{Deref, Range};
 
@@ -60,6 +60,7 @@ impl<V>                 Deref       for Spanned<V> { fn deref(&self) -> &Self::T
 //impl<V>               DerefMut    for Spanned<V> { fn deref_mut(&mut self) -> &mut Self::Target { &mut self.value } }
 impl<R, V: AsRef<R>>    AsRef<R>    for Spanned<V> { fn as_ref(&self) -> &R { self.value.as_ref() } }
 impl<V: Debug>          Debug       for Spanned<V> { fn fmt(&self, fmt: &mut Formatter) -> fmt::Result { self.value.fmt(fmt) } }
+impl<V: Display>        Display     for Spanned<V> { fn fmt(&self, fmt: &mut Formatter) -> fmt::Result { self.value.fmt(fmt) } }
 impl<V>                 From<V>     for Spanned<V> { fn from(v: V) -> Self { Self { value: v, start: 0, end: 0 } } }
 impl<V: Eq>             Eq          for Spanned<V> {}
 impl<V: Ord>            Ord         for Spanned<V> { fn cmp(&self, other: &Self) -> Ordering { self.value.cmp(&other.value) } }
