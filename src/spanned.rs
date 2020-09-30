@@ -111,7 +111,7 @@ impl Value {
 
     // TODO: as_span_*_mut ?  how would that even work?
 
-    #[doc="`Ok(span + ()) if self is `null`, otherwise Err(self)"                                       ] pub fn into_span_null     (self) -> Result<Null,     Self> { let Self { start, end, value } = self; match value { super::Value::Null      => Ok(Spanned { start, end, value: () }), value => Err(Spanned { start, end, value }) } }
+    #[doc="`Ok(span + ())` if self is `null`, otherwise Err(self)"                                      ] pub fn into_span_null     (self) -> Result<Null,     Self> { let Self { start, end, value } = self; match value { super::Value::Null      => Ok(Spanned { start, end, value: () }), value => Err(Spanned { start, end, value }) } }
     #[doc="`Ok(span + inner)` if self is `true` or `false`, otherwise Err(self)"                        ] pub fn into_span_bool     (self) -> Result<Bool,     Self> { let Self { start, end, value } = self; match value { super::Value::Bool(v)   => Ok(Spanned { start, end, value: v  }), value => Err(Spanned { start, end, value }) } }
     #[doc="`Ok(span + inner)` if self is a number like `123`, otherwise Err(self)"                      ] pub fn into_span_number   (self) -> Result<Number,   Self> { let Self { start, end, value } = self; match value { super::Value::Number(v) => Ok(Spanned { start, end, value: v  }), value => Err(Spanned { start, end, value }) } }
     #[doc="`Ok(span + inner)` if self is a string like `\"asdf\"`, otherwise Err(self)"                 ] pub fn into_span_string   (self) -> Result<String,   Self> { let Self { start, end, value } = self; match value { super::Value::String(v) => Ok(Spanned { start, end, value: v  }), value => Err(Spanned { start, end, value }) } }
