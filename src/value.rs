@@ -129,6 +129,9 @@ impl<'de> de::Deserialize<'de> for Value {
             fn visit_map<V: de::MapAccess<'de>>(self, mut visitor: V) -> Result<Value, V::Error> {
                 let mut values = Map::new();
                 while let Some(key) = visitor.next_key()? {
+                    if !settings().map_or(false, |s| s.allow_duplicate_keys) && values.contains_key(&key) {
+                        return Err(de::Error::custom(format!("Duplicate field: {:?}", key)));
+                    }
                     let value = visitor.next_value()?;
                     values.insert(key, value);
                 }
