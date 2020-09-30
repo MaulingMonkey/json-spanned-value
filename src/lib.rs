@@ -14,7 +14,6 @@
 //! [toml]:                 https://docs.rs/toml/
 //! [toml-spanned-value]:   https://docs.rs/toml-spanned-value/
 //! [json-spanned-value]:   https://docs.rs/json-spanned-value/
-#![allow(dead_code)]
 #![forbid(missing_docs)]
 #![forbid(unsafe_code)]
 

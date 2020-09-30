@@ -47,7 +47,7 @@ fn do_test_obj(json: &str, expected: Vec<(&str, &str, fn(&Value) -> bool)>) {
 }
 
 #[test] fn struct_plain() {
-    #[derive(Deserialize)] struct Plain {
+    #[allow(dead_code)] #[derive(Deserialize)] struct Plain {
         null:   (),
         string: String,
         number: serde_json::Number,
@@ -61,7 +61,7 @@ fn do_test_obj(json: &str, expected: Vec<(&str, &str, fn(&Value) -> bool)>) {
 }
 
 #[test] fn struct_annotated() {
-    #[derive(Deserialize)] struct Annotated {
+    #[allow(dead_code)] #[derive(Deserialize)] struct Annotated {
         null:   spanned::Null,
         string: spanned::String,
         number: spanned::Number,
