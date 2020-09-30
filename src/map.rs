@@ -94,10 +94,10 @@ impl<'de, K: Debug + Hash + Ord + de::Deserialize<'de>, V: de::Deserialize<'de>>
             fn visit_map<MA: de::MapAccess<'de>>(self, mut visitor: MA) -> Result<Self::Value, MA::Error> {
                 let mut values = Map::new();
                 while let Some(key) = visitor.next_key()? {
-                    let value = visitor.next_value()?;
                     if !settings().map_or(false, |s| s.allow_duplicate_keys) && values.contains_key(&key) {
                         return Err(de::Error::custom(format!("Duplicate field: {:?}", key)));
                     }
+                    let value = visitor.next_value()?;
                     values.insert(key, value);
                 }
                 Ok(values)
