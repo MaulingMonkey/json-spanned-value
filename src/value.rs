@@ -46,6 +46,18 @@ impl Value {
     #[doc="`Ok(inner)` if self is a string like `\"asdf\"`, otherwise `Err(self)`"              ] pub fn into_string  (self) -> Result<String, Self>                                  { match self { Value::String(v) => Ok(v), o => Err(o) } }
     #[doc="`Ok(inner)` if self is an array like `[1, 2, 3]`, otherwise `Err(self)`"             ] pub fn into_array   (self) -> Result<Vec<Spanned<Value>>, Self>                     { match self { Value::Array(v)  => Ok(v), o => Err(o) } }
     #[doc="`Ok(inner)` if self is an object like `{\"a\": 1, \"b\": 2}`, otherwise `Err(self)`" ] pub fn into_object  (self) -> Result<Map<Spanned<String>, Spanned<Value>>, Self>    { match self { Value::Object(v) => Ok(v), o => Err(o) } }
+
+    /// A human-readable representation of the type of this value
+    pub fn type_str(&self) -> &'static str {
+        match self {
+            Value::Null         => "null",
+            Value::Bool(_)      => "boolean",
+            Value::Number(_)    => "number",
+            Value::String(_)    => "string",
+            Value::Array(_)     => "array",
+            Value::Object(_)    => "object",
+        }
+    }
 }
 
 impl Debug for Value {
