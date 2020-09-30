@@ -1,3 +1,5 @@
+use crate::Spanned;
+
 use serde::de;
 
 use std::borrow::Borrow;
@@ -63,6 +65,24 @@ impl<K: Hash + Ord, V> IntoIterator for Map<K, V> {
     type Item = (K, V);
     type IntoIter = <MapImpl<K, V> as IntoIterator>::IntoIter;
     fn into_iter(self) -> Self::IntoIter { self.map.into_iter() }
+}
+
+impl<'a, K: Hash + Ord + 'a, V: 'a> IntoIterator for &'a Spanned<Map<K, V>> {
+    type Item = (&'a K, &'a V);
+    type IntoIter = <&'a MapImpl<K, V> as IntoIterator>::IntoIter;
+    fn into_iter(self) -> Self::IntoIter { (&self.get_ref().map).into_iter() }
+}
+
+impl<'a, K: Hash + Ord + 'a, V: 'a> IntoIterator for &'a mut Spanned<Map<K, V>> {
+    type Item = (&'a K, &'a mut V);
+    type IntoIter = <&'a mut MapImpl<K, V> as IntoIterator>::IntoIter;
+    fn into_iter(self) -> Self::IntoIter { (&mut self.get_mut().map).into_iter() }
+}
+
+impl<K: Hash + Ord, V> IntoIterator for Spanned<Map<K, V>> {
+    type Item = (K, V);
+    type IntoIter = <MapImpl<K, V> as IntoIterator>::IntoIter;
+    fn into_iter(self) -> Self::IntoIter { self.into_inner().map.into_iter() }
 }
 
 impl<'de, K: Hash + Ord + de::Deserialize<'de>, V: de::Deserialize<'de>> de::Deserialize<'de> for Map<K, V> {

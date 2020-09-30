@@ -12,7 +12,7 @@ fn main() {
     let file = files.add("examples/demo.json", text);
 
     let example : spanned::Object = jsv::from_str(text).unwrap();
-    for (k,v) in example.iter() {
+    for (k,v) in example {
         emit(&files, &Diagnostic::note().with_message("This is a key!").with_labels(vec![Label::primary(file, k.range())]));
         emit(&files, &Diagnostic::note().with_message("This is a value!").with_labels(vec![Label::primary(file, v.range())]));
     }
