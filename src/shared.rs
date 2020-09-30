@@ -1,3 +1,5 @@
+use crate::Settings;
+
 use std::cell::{Cell, RefCell};
 use std::ops::Drop;
 use std::rc::Rc;
@@ -6,11 +8,23 @@ use std::rc::Rc;
 
 #[derive(Default)]
 pub(crate) struct Shared {
+    pub(crate) settings:   Settings,
     pub(crate) start:      Cell<(usize, u8)>,
     pub(crate) pos:        Cell<usize>,
 }
 
+impl Shared {
+    pub(crate) fn new(settings: &Settings) -> Self {
+        Self {
+            settings:   *settings,
+            start:      Default::default(),
+            pos:        Default::default(),
+        }
+    }
+}
+
 thread_local! { static SHARED : RefCell<Option<Rc<Shared>>> = RefCell::new(None); }
+pub(crate) fn settings()       -> Option<Settings> { SHARED.with(|s| s.borrow().as_ref().map(|s| s.settings)) }
 pub(crate) fn start()          -> Option<(usize, char)> { SHARED.with(|s| s.borrow().as_ref().map(|s| s.start.get())).map(|(s,c)| (s, c as char)) }
 pub(crate) fn end(prev: bool)  -> Option<usize> { SHARED.with(|s| s.borrow().as_ref().map(|s| s.pos.get().saturating_sub(prev as usize))) }
 

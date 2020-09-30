@@ -46,6 +46,18 @@ fn do_test_obj(json: &str, expected: Vec<(&str, &str, fn(&Value) -> bool)>) {
     ]);
 }
 
+#[test] fn duplicate_keys_allow() {
+    let settings = Settings { allow_duplicate_keys: true, ..Settings::default() };
+    let o : spanned::Object = from_str_with_settings("{\"a\": 1, \"a\": 2}", &settings).unwrap();
+    let a = o.get("a").unwrap().as_number().unwrap().as_u64().unwrap();
+    assert!(a == 1 || a == 2);
+}
+
+#[test] fn duplicate_keys_deny() {
+    let settings = Settings { allow_duplicate_keys: false, ..Settings::default() };
+    from_str_with_settings::<spanned::Object>("{\"a\": 1, \"a\": 2}", &settings).unwrap_err();
+}
+
 #[test] fn struct_plain() {
     #[allow(dead_code)] #[derive(Deserialize)] struct Plain {
         null:   (),

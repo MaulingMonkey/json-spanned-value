@@ -19,6 +19,7 @@
 
 mod map;            pub use map::Map;
 mod reader;         pub(crate) use reader::*;
+mod settings;       pub use settings::*;
 mod shared;         pub(crate) use shared::*;
 pub mod spanned;    pub use spanned::Spanned;
 mod value;          pub use value::Value;
@@ -32,9 +33,9 @@ use serde::de;
 use std::rc::Rc;
 
 
-/// Read json from a slice of in-memory bytes
-pub fn from_slice<T: de::DeserializeOwned>(buf: &[u8]) -> sje::Result<T> {
-    let shared = Rc::new(Shared::default());
+/// Read json from a slice of in-memory bytes, with explicit [Settings]
+pub fn from_slice_with_settings<T: de::DeserializeOwned>(buf: &[u8], settings: &Settings) -> sje::Result<T> {
+    let shared = Rc::new(Shared::new(settings));
     let _shared_stack = SharedStack::push(shared.clone());
     // NOTE:  Our use of from_reader forces us to use DeserializeOwned
     serde_json::from_reader(Reader {
@@ -43,7 +44,17 @@ pub fn from_slice<T: de::DeserializeOwned>(buf: &[u8]) -> sje::Result<T> {
     })
 }
 
-/// Read json from an in-memory string
+/// Read json from a slice of in-memory bytes, with default [Settings]
+pub fn from_slice<T: de::DeserializeOwned>(buf: &[u8]) -> sje::Result<T> {
+    from_slice_with_settings(buf, &Settings::default())
+}
+
+/// Read json from an in-memory string, with explicit [Settings]
+pub fn from_str_with_settings<T: de::DeserializeOwned>(buf: &str, settings: &Settings) -> sje::Result<T> {
+    from_slice_with_settings(buf.as_bytes(), settings)
+}
+
+/// Read json from an in-memory string, with default [Settings]
 pub fn from_str<T: de::DeserializeOwned>(buf: &str) -> sje::Result<T> {
     from_slice(buf.as_bytes())
 }

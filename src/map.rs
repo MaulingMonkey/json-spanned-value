@@ -1,10 +1,10 @@
-use crate::Spanned;
+use crate::{settings, Spanned};
 
 use serde::de;
 
 use std::borrow::Borrow;
 use std::cmp::Ord;
-use std::fmt::{self, Formatter};
+use std::fmt::{self, Debug, Formatter};
 use std::hash::Hash;
 use std::marker::PhantomData;
 
@@ -85,16 +85,19 @@ impl<K: Hash + Ord, V> IntoIterator for Spanned<Map<K, V>> {
     fn into_iter(self) -> Self::IntoIter { self.into_inner().map.into_iter() }
 }
 
-impl<'de, K: Hash + Ord + de::Deserialize<'de>, V: de::Deserialize<'de>> de::Deserialize<'de> for Map<K, V> {
+impl<'de, K: Debug + Hash + Ord + de::Deserialize<'de>, V: de::Deserialize<'de>> de::Deserialize<'de> for Map<K, V> {
     fn deserialize<D: de::Deserializer<'de>>(deserializer: D) -> Result<Self, D::Error> {
         struct MapVisitor<'de, K: Ord + de::Deserialize<'de>, V: de::Deserialize<'de>>(PhantomData<(&'de (), K, V)>);
-        impl<'de, K: Hash + Ord + de::Deserialize<'de>, V: de::Deserialize<'de>> de::Visitor<'de> for MapVisitor<'de, K, V> {
+        impl<'de, K: Debug + Hash + Ord + de::Deserialize<'de>, V: de::Deserialize<'de>> de::Visitor<'de> for MapVisitor<'de, K, V> {
             type Value = Map<K, V>;
             fn expecting(&self, formatter: &mut Formatter) -> fmt::Result { formatter.write_str("a JSON object") }
             fn visit_map<MA: de::MapAccess<'de>>(self, mut visitor: MA) -> Result<Self::Value, MA::Error> {
                 let mut values = Map::new();
                 while let Some(key) = visitor.next_key()? {
                     let value = visitor.next_value()?;
+                    if !settings().map_or(false, |s| s.allow_duplicate_keys) && values.contains_key(&key) {
+                        return Err(de::Error::custom(format!("Duplicate field: {:?}", key)));
+                    }
                     values.insert(key, value);
                 }
                 Ok(values)
