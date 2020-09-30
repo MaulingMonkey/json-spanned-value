@@ -54,7 +54,8 @@ impl<V> Spanned<V> {
     pub fn get_mut(&mut self) -> &mut V { &mut self.value }
 }
 
-impl                    Borrow<str> for Spanned<String> { fn borrow(&self) -> &str { self.get_ref() } }
+impl                    Borrow<str> for Str<'_>    { fn borrow(&self) -> &str { self.get_ref() } }
+impl                    Borrow<str> for String     { fn borrow(&self) -> &str { self.get_ref() } }
 impl<V>                 Deref       for Spanned<V> { fn deref(&self) -> &Self::Target { &self.value } type Target = V; }
 //impl<V>               DerefMut    for Spanned<V> { fn deref_mut(&mut self) -> &mut Self::Target { &mut self.value } }
 impl<R, V: AsRef<R>>    AsRef<R>    for Spanned<V> { fn as_ref(&self) -> &R { self.value.as_ref() } }
