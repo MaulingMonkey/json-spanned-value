@@ -6,7 +6,7 @@
 //! However, this type doesn't support span information.
 //! In some cases it's possible to extract line/column information out of error messages,
 //! but that's awkward and error prone - often reporting errors on the next line
-//! (e.g. where the seek positino of the underlying reader has skipped to.)
+//! (e.g. where the seek position of the underlying reader has skipped to.)
 //!
 //!
 //!
