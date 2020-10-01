@@ -46,9 +46,12 @@ fn do_test_obj(json: &str, expected: Vec<(&str, &str, fn(&Value) -> bool)>) {
     ]);
 }
 
+
+
 #[test] fn duplicate_keys_allow() {
+    let json = "{\"a\": 1, \"a\": 2}";
     let settings = Settings { allow_duplicate_keys: true, ..Settings::default() };
-    let o : spanned::Object = from_str_with_settings("{\"a\": 1, \"a\": 2}", &settings).unwrap();
+    let o : spanned::Object = from_str_with_settings(json, &settings).unwrap();
     let a = o.get("a").unwrap().as_number().unwrap().as_u64().unwrap();
     assert!(a == 1 || a == 2);
 }
@@ -60,6 +63,103 @@ fn do_test_obj(json: &str, expected: Vec<(&str, &str, fn(&Value) -> bool)>) {
     let until_err = &json[..err.offset_within(json).unwrap_or(json.len()-1)];
     assert!(until_err.ends_with("\"a\""), "until_err: {:?}", until_err);
 }
+
+
+
+#[test] fn trailing_object_commas_allow() {
+    let json = "{\"a\": 1, \"b\": 2, }";
+    let settings = Settings { allow_trailing_comma: true, ..Settings::default() };
+    let o : spanned::Object = from_str_with_settings(json, &settings).unwrap();
+    assert_eq!(1, o.get("a").unwrap().as_number().unwrap().as_u64().unwrap());
+    assert_eq!(2, o.get("b").unwrap().as_number().unwrap().as_u64().unwrap());
+}
+
+#[test] fn trailing_object_commas_deny() {
+    let json = "{\"a\": 1, \"b\": 2, }";
+    let settings = Settings { allow_trailing_comma: false, ..Settings::default() };
+    let err = from_str_with_settings::<spanned::Object>(json, &settings).unwrap_err();
+    let until_err = &json[..err.offset_within(json).unwrap_or(json.len()-1)];
+    assert!(until_err.ends_with("\"b\": 2, "), "until_err: {:?}", until_err);
+}
+
+#[test] fn trailing_array_commas_allow() {
+    let json = "[1, 2,]";
+    let settings = Settings { allow_trailing_comma: true, ..Settings::default() };
+    let a : spanned::Array = from_str_with_settings(json, &settings).unwrap();
+    assert_eq!(1, a[0].as_number().unwrap().as_u64().unwrap());
+    assert_eq!(2, a[1].as_number().unwrap().as_u64().unwrap());
+}
+
+#[test] fn trailing_array_commas_deny() {
+    let json = "[1, 2,]";
+    let settings = Settings { allow_trailing_comma: false, ..Settings::default() };
+    let err = from_str_with_settings::<spanned::Object>(json, &settings).unwrap_err();
+    let _until_err = &json[..err.offset_within(json).unwrap_or(json.len()-1)];
+    // assert_eq!(_until_err, "["); // Funky enough error location that I'd rather not assert it, in case it's made saner
+}
+
+
+
+#[test] fn single_line_comments_allow() {
+    let json = "{\n    \"a\": 1, // a allow_comments\n    \"b\": 2 // another comment\n}";
+    let settings = Settings { allow_comments: true, ..Settings::default() };
+    let o : spanned::Object = from_str_with_settings(json, &settings).unwrap();
+    assert_eq!(1, o.get("a").unwrap().as_number().unwrap().as_u64().unwrap());
+    assert_eq!(2, o.get("b").unwrap().as_number().unwrap().as_u64().unwrap());
+}
+
+#[test] fn single_line_comments_deny() {
+    let json = "{\n    \"a\": 1, // a comment\n    \"b\": 2 // another comment\n}";
+    let settings = Settings { allow_comments: false, ..Settings::default() };
+    let err = from_str_with_settings::<spanned::Object>(json, &settings).unwrap_err();
+    let until_err = &json[..err.offset_within(json).unwrap_or(json.len()-1)];
+    assert!(until_err.ends_with("\"a\": 1, "), "until_err: {:?}", until_err);
+}
+
+#[test] fn multi_line_comments_allow() {
+    let json = "{\"a\": 1, /* comment */ \"b\": 2}";
+    let settings = Settings { allow_comments: true, ..Settings::default() };
+    let o : spanned::Object = from_str_with_settings(json, &settings).unwrap();
+    assert_eq!(1, o.get("a").unwrap().as_number().unwrap().as_u64().unwrap());
+    assert_eq!(2, o.get("b").unwrap().as_number().unwrap().as_u64().unwrap());
+}
+
+#[test] fn multi_line_comments_deny() {
+    let json = "{\"a\": 1, /* comment */ \"b\": 2}";
+    let settings = Settings { allow_comments: false, ..Settings::default() };
+    let err = from_str_with_settings::<spanned::Object>(json, &settings).unwrap_err();
+    let until_err = &json[..err.offset_within(json).unwrap_or(json.len()-1)];
+    assert!(until_err.ends_with("\"a\": 1, "), "until_err: {:?}", until_err);
+}
+
+
+
+#[test] fn comment_spam_allow() {
+    let json = "{\"a\": 1, /*comment*//**//**/// asdf\n//asdf\n//asdf\n/* comment */ \"b\": 2}";
+    let settings = Settings { allow_comments: true, ..Settings::default() };
+    let o : spanned::Object = from_str_with_settings(json, &settings).unwrap();
+    assert_eq!(1, o.get("a").unwrap().as_number().unwrap().as_u64().unwrap());
+    assert_eq!(2, o.get("b").unwrap().as_number().unwrap().as_u64().unwrap());
+}
+
+#[test] fn comment_spam_after_trailing_comma() {
+    let json = "{\"a\": 1, \"b\": 2, /*comment*//**//**/// asdf\n//asdf\n//asdf\n/* comment */ }";
+    let settings = Settings { allow_comments: true, allow_trailing_comma: true, ..Settings::default() };
+    let o : spanned::Object = from_str_with_settings(json, &settings).unwrap();
+    assert_eq!(1, o.get("a").unwrap().as_number().unwrap().as_u64().unwrap());
+    assert_eq!(2, o.get("b").unwrap().as_number().unwrap().as_u64().unwrap());
+}
+
+#[test] fn not_a_comment() {
+    let json = "{\"a\": 1, \"not_a_comment\": \"/*comment*//**//**/// asdf\\n//asdf\\n//asdf\\n/* comment */\", \"b\": 2 }";
+    let settings = Settings { allow_comments: true, allow_trailing_comma: true, ..Settings::default() };
+    let o : spanned::Object = from_str_with_settings(json, &settings).unwrap();
+    assert_eq!(1, o.get("a").unwrap().as_number().unwrap().as_u64().unwrap());
+    assert_eq!(2, o.get("b").unwrap().as_number().unwrap().as_u64().unwrap());
+    assert_eq!("/*comment*//**//**/// asdf\n//asdf\n//asdf\n/* comment */", o.get("not_a_comment").unwrap().as_string().unwrap());
+}
+
+
 
 #[test] fn struct_plain() {
     #[allow(dead_code)] #[derive(Deserialize)] struct Plain {

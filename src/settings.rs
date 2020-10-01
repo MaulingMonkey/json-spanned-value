@@ -5,6 +5,12 @@ pub struct Settings {
     /// **default: false**
     pub allow_duplicate_keys: bool,
 
+    /// Allow trailing commas when deserializing an array such as `[1, 2, 3,]` or object such as `{"a", 1, "b": 2,}`.
+    pub allow_trailing_comma: bool,
+
+    /// Allow `// single line` or `/* block */` comments.
+    pub allow_comments: bool,
+
     #[doc(hidden)] pub _non_exhaustive: ()
 }
 
@@ -12,6 +18,8 @@ impl Default for Settings {
     fn default() -> Self {
         Self {
             allow_duplicate_keys:   false,
+            allow_trailing_comma:   false,
+            allow_comments:         false,
 
             _non_exhaustive:        ()
         }
