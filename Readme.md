@@ -20,6 +20,15 @@ In some cases it's possible to extract line/column information out of error mess
 but that's awkward and error prone - often reporting errors on the next line
 (e.g. where the seek position of the underlying reader has skipped to.)
 
+<!--
+    MSRV    Used feature
+    1.31.0  serde
+    1.31.0  serde_json
+    1.32.0  use some_mod::...;
+    1.40.0  BTreeMap::get_key_value
+    1.4?.0  BTreeMap::remove_entry
+-->
+
 ## License
 
 Licensed under either of [Apache License, Version 2.0](LICENSE-APACHE) or [MIT license](LICENSE-MIT) at your option.
