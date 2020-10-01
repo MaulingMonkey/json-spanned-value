@@ -10,8 +10,33 @@ use std::rc::Rc;
 /// make their position accessible.  This results in some very odd design
 /// choices.
 pub(crate) struct Reader<B: Buffer> {
-    pub(crate) buf:    B,
-    pub(crate) shared: Rc<Shared>,
+    buf:    B,
+    shared: Rc<Shared>,
+}
+
+impl<B: Buffer> Reader<B> {
+    pub(crate) fn new(buf: B, shared: Rc<Shared>) -> Self {
+        let mut r = Self { buf, shared };
+        r.advance_start_from(0);
+        r
+    }
+
+    pub(crate) fn advance_start_from(&mut self, mut pos: usize) {
+        let shared = &*self.shared;
+        let src = self.buf.as_bytes();
+
+        // We often need to seek "ahead" to find the start of the next token.
+        // Doing so in here as an I/O side effect is very odd, but avoids
+        // the need to statically store a reference to &'nonstatic [u8].
+        // 
+        // NOTE WELL:  shared.start == shared.pos - 1 is legal and common!  This
+        // means arrays, strings, etc. all include the opening character.
+
+        if shared.start.get().0 > pos { return; } // Avoid O(nn) behavior for "     ..."
+
+        while b": \r\n\t".contains(src.get(pos).unwrap_or(&b'\0')) { pos += 1; }
+        shared.start.set((pos, *src.get(pos).unwrap_or(&b'\0')));
+    }
 }
 
 impl<B: Buffer> Read for Reader<B> {
@@ -26,26 +51,11 @@ impl<B: Buffer> Read for Reader<B> {
 
         let shared = &*self.shared;
         let src = self.buf.as_bytes();
-        let pos1 = shared.pos.get();
-        out[0] = if let Some(n) = src.get(pos1) { *n } else { return Ok(0) };
-        let pos2 = pos1 + 1;
-
+        let pos = shared.pos.get();
+        out[0] = if let Some(n) = src.get(pos) { *n } else { return Ok(0) };
         // The current seek position is used to determine where many tokens end
-        shared.pos.set(pos2);
-
-        // We often need to seek "ahead" to find the start of the next token.
-        // Doing so in here as an I/O side effect is very odd, but avoids
-        // the need to statically store a reference to &'nonstatic [u8].
-        // 
-        // NOTE WELL:  shared.start == shared.pos - 1 is legal and common!  This
-        // means arrays, strings, etc. all include the opening character.
-
-        if shared.start.get().0 <= pos1 { // Avoid O(nn) behavior for "     ..."
-            let mut start = pos1;
-            while b": \r\n\t".contains(src.get(start).unwrap_or(&b'\0')) { start += 1; }
-            shared.start.set((start, *src.get(start).unwrap_or(&b'\0')));
-        }
-
+        shared.pos.set(pos + 1);
+        self.advance_start_from(pos);
         Ok(1)
     }
 }

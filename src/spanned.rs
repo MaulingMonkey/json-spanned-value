@@ -72,7 +72,8 @@ impl<'de, V: Deserialize<'de>> Deserialize<'de> for Spanned<V> {
     fn deserialize<D: Deserializer<'de>>(deserializer: D) -> Result<Self, D::Error> {
         let (start, start_ch)   = start().unwrap_or((0, '\0'));
         let value               = V::deserialize(deserializer)?;
-        let end                 = end(!"[{ntf\"".contains(start_ch)).unwrap_or(0);
+        let end                 = end().unwrap_or(0);
+        let end                 = if "[{ntf\"".contains(start_ch) { end } else { end.saturating_sub(1) };
         Ok(Self { start, end, value })
     }
 }
@@ -117,4 +118,90 @@ impl Value {
     #[doc="`Ok(span + inner)` if self is a string like `\"asdf\"`, otherwise Err(self)"                 ] pub fn into_span_string   (self) -> Result<String,   Self> { let Self { start, end, value } = self; match value { super::Value::String(v) => Ok(Spanned { start, end, value: v  }), value => Err(Spanned { start, end, value }) } }
     #[doc="`Ok(span + inner)` if self is an array like `[1, 2, 3]`, otherwise Err(self)"                ] pub fn into_span_array    (self) -> Result<Array,    Self> { let Self { start, end, value } = self; match value { super::Value::Array(v)  => Ok(Spanned { start, end, value: v  }), value => Err(Spanned { start, end, value }) } }
     #[doc="`Ok(span + inner)` if self is an object like `{\"a\": 1, \"b\": 2}`, otherwise Err(self)"    ] pub fn into_span_object   (self) -> Result<Object,   Self> { let Self { start, end, value } = self; match value { super::Value::Object(v) => Ok(Spanned { start, end, value: v  }), value => Err(Spanned { start, end, value }) } }
+
+    /// Lookup a value by JSON Pointer ([RFC 6901](https://tools.ietf.org/html/rfc6901))
+    pub fn pointer(&self, path: &str) -> Option<&Value> {
+        if path == "" { return Some(self) }
+        if !path.starts_with("/") { return None }
+        let mut current = self;
+        let tokens = path.split('/').skip(1).map(|t| t.replace("~1", "/").replace("~0", "~"));
+        for token in tokens {
+            current = match &current.value {
+                super::Value::Object(o) => o.get(token.as_str())?,
+                super::Value::Array(a)  => a.get(token.parse::<usize>().ok()?)?,
+                _other                  => return None,
+            };
+        }
+        Some(current)
+    }
+
+    /// Lookup a value by JSON Pointer ([RFC 6901](https://tools.ietf.org/html/rfc6901))
+    pub fn pointer_mut(&mut self, path: &str) -> Option<&mut Value> {
+        if path == "" { return Some(self) }
+        if !path.starts_with("/") { return None }
+        let mut current = self;
+        let tokens = path.split('/').skip(1).map(|t| t.replace("~1", "/").replace("~0", "~"));
+        for token in tokens {
+            current = match &mut current.value {
+                super::Value::Object(o) => o.get_mut(token.as_str())?,
+                super::Value::Array(a)  => a.get_mut(token.parse::<usize>().ok()?)?,
+                _other                  => return None,
+            };
+        }
+        Some(current)
+    }
+}
+
+#[cfg(test)] mod tests {
+    use crate::*;
+
+    #[test] fn pointer() {
+        let text = "{\"a\": {\"b\": [0, [0, 1, {\"c\": \"value\"}]]}}";
+        let v : spanned::Value = from_str(text).unwrap();
+        assert_eq!(&text[v.pointer("").unwrap().range()],           "{\"a\": {\"b\": [0, [0, 1, {\"c\": \"value\"}]]}}");
+        assert_eq!(&text[v.pointer("/a").unwrap().range()],         "{\"b\": [0, [0, 1, {\"c\": \"value\"}]]}");
+        assert_eq!(&text[v.pointer("/a/b").unwrap().range()],       "[0, [0, 1, {\"c\": \"value\"}]]");
+        assert_eq!(&text[v.pointer("/a/b/0").unwrap().range()],     "0");
+        assert_eq!(&text[v.pointer("/a/b/1").unwrap().range()],     "[0, 1, {\"c\": \"value\"}]");
+        assert_eq!(&text[v.pointer("/a/b/1/0").unwrap().range()],   "0");
+        assert_eq!(&text[v.pointer("/a/b/1/1").unwrap().range()],   "1");
+        assert_eq!(&text[v.pointer("/a/b/1/2").unwrap().range()],   "{\"c\": \"value\"}");
+        assert_eq!(&text[v.pointer("/a/b/1/2/c").unwrap().range()], "\"value\"");
+
+        assert!(         v.pointer("/a/b/1/2/d").is_none());
+        assert!(         v.pointer("/a/b/1/2/").is_none());
+        assert!(         v.pointer("/a/b/1/3").is_none());
+        assert!(         v.pointer("/a/b/1/").is_none());
+        assert!(         v.pointer("/a/b/2").is_none());
+        assert!(         v.pointer("/a/b/").is_none());
+        assert!(         v.pointer("/a/nope").is_none());
+        assert!(         v.pointer("/a/").is_none());
+        assert!(         v.pointer("/nope").is_none());
+        assert!(         v.pointer("/").is_none());
+    }
+
+    #[test] fn pointer_mut() {
+        let text = "{\"a\": {\"b\": [0, [0, 1, {\"c\": \"value\"}]]}}";
+        let mut v : spanned::Value = from_str(text).unwrap();
+        assert_eq!(&text[v.pointer_mut("").unwrap().range()],           "{\"a\": {\"b\": [0, [0, 1, {\"c\": \"value\"}]]}}");
+        assert_eq!(&text[v.pointer_mut("/a").unwrap().range()],         "{\"b\": [0, [0, 1, {\"c\": \"value\"}]]}");
+        assert_eq!(&text[v.pointer_mut("/a/b").unwrap().range()],       "[0, [0, 1, {\"c\": \"value\"}]]");
+        assert_eq!(&text[v.pointer_mut("/a/b/0").unwrap().range()],     "0");
+        assert_eq!(&text[v.pointer_mut("/a/b/1").unwrap().range()],     "[0, 1, {\"c\": \"value\"}]");
+        assert_eq!(&text[v.pointer_mut("/a/b/1/0").unwrap().range()],   "0");
+        assert_eq!(&text[v.pointer_mut("/a/b/1/1").unwrap().range()],   "1");
+        assert_eq!(&text[v.pointer_mut("/a/b/1/2").unwrap().range()],   "{\"c\": \"value\"}");
+        assert_eq!(&text[v.pointer_mut("/a/b/1/2/c").unwrap().range()], "\"value\"");
+
+        assert!(         v.pointer_mut("/a/b/1/2/d").is_none());
+        assert!(         v.pointer_mut("/a/b/1/2/").is_none());
+        assert!(         v.pointer_mut("/a/b/1/3").is_none());
+        assert!(         v.pointer_mut("/a/b/1/").is_none());
+        assert!(         v.pointer_mut("/a/b/2").is_none());
+        assert!(         v.pointer_mut("/a/b/").is_none());
+        assert!(         v.pointer_mut("/a/nope").is_none());
+        assert!(         v.pointer_mut("/a/").is_none());
+        assert!(         v.pointer_mut("/nope").is_none());
+        assert!(         v.pointer_mut("/").is_none());
+    }
 }

@@ -39,10 +39,7 @@ pub fn from_slice_with_settings<T: de::DeserializeOwned>(buf: &[u8], settings: &
     let shared = Rc::new(Shared::new(settings));
     let _shared_stack = SharedStack::push(shared.clone());
     // NOTE:  Our use of from_reader forces us to use DeserializeOwned
-    serde_json::from_reader(Reader {
-        buf,
-        shared,
-    })
+    serde_json::from_reader(Reader::new(buf, shared))
 }
 
 /// Read json from a slice of in-memory bytes, with default [Settings]

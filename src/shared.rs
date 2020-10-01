@@ -26,7 +26,7 @@ impl Shared {
 thread_local! { static SHARED : RefCell<Option<Rc<Shared>>> = RefCell::new(None); }
 pub(crate) fn settings()       -> Option<Settings> { SHARED.with(|s| s.borrow().as_ref().map(|s| s.settings)) }
 pub(crate) fn start()          -> Option<(usize, char)> { SHARED.with(|s| s.borrow().as_ref().map(|s| s.start.get())).map(|(s,c)| (s, c as char)) }
-pub(crate) fn end(prev: bool)  -> Option<usize> { SHARED.with(|s| s.borrow().as_ref().map(|s| s.pos.get().saturating_sub(prev as usize))) }
+pub(crate) fn end()            -> Option<usize> { SHARED.with(|s| s.borrow().as_ref().map(|s| s.pos.get())) }
 
 
 
