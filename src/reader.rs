@@ -2,16 +2,16 @@ use crate::Shared;
 
 use std::convert::*;
 use std::io::{self, Read};
-use std::rc::Rc;
+use std::sync::{Arc, atomic::Ordering::Relaxed};
 
 
 
 /// A specialized [io::Read]er designed to identify JSON token boundaries and
 /// make their position accessible.  This results in some very odd design
 /// choices.
-pub(crate) struct Reader<B: Buffer> {
+pub(crate) struct Reader<B: AsRef<[u8]>> {
     buf:    B,
-    shared: Rc<Shared>,
+    shared: Arc<Shared>,
     mode:   Mode,
 }
 
@@ -25,8 +25,8 @@ enum Mode {
     InMultiLineComment,
 }
 
-impl<B: Buffer> Reader<B> {
-    pub(crate) fn new(buf: B, shared: Rc<Shared>) -> Self {
+impl<B: AsRef<[u8]>> Reader<B> {
+    pub(crate) fn new(buf: B, shared: Arc<Shared>) -> Self {
         let mut r = Self { buf, shared, mode: Mode::Normal };
         r.advance_start_from(0);
         r
@@ -35,7 +35,7 @@ impl<B: Buffer> Reader<B> {
     pub(crate) fn advance_start_from(&mut self, mut pos: usize) {
         assert_eq!(self.mode, Mode::Normal);
         let shared = &*self.shared;
-        let src = self.buf.as_bytes();
+        let src = self.buf.as_ref();
 
         // We often need to seek "ahead" to find the start of the next token.
         // Doing so in here as an I/O side effect is very odd, but avoids
@@ -44,7 +44,7 @@ impl<B: Buffer> Reader<B> {
         // NOTE WELL:  shared.start == shared.pos - 1 is legal and common!  This
         // means arrays, strings, etc. all include the opening character.
 
-        if shared.start.get().0 > pos { return; } // Avoid O(nn) behavior for "     ..."
+        if shared.start_pos.load(Relaxed) > pos { return; } // Avoid O(nn) behavior for "     ..."
 
         while let Some(ch) = src.get(pos) {
             if b": \r\n\t".contains(ch) {
@@ -78,11 +78,12 @@ impl<B: Buffer> Reader<B> {
             }
         }
 
-        shared.start.set((pos, *src.get(pos).unwrap_or(&b'\0')));
+        shared.start_pos.store(pos, Relaxed);
+        shared.start_ch.store(*src.get(pos).unwrap_or(&b'\0'), Relaxed);
     }
 }
 
-impl<B: Buffer> Read for Reader<B> {
+impl<B: AsRef<[u8]>> Read for Reader<B> {
     fn read(&mut self, out: &mut [u8]) -> io::Result<usize> {
         if out.is_empty() { return Ok(0) }
 
@@ -92,11 +93,11 @@ impl<B: Buffer> Read for Reader<B> {
         // at a time, even if more were available.  This also lets us accurately
         // track serde_json's exact cursor position.
 
-        let src = self.buf.as_bytes();
-        let pos = self.shared.pos.get();
+        let src = self.buf.as_ref();
+        let pos = self.shared.pos.load(Relaxed);
         let mut ch = if let Some(n) = src.get(pos) { *n } else { return Ok(0) };
         // The current seek position is used to determine where many tokens end
-        self.shared.pos.set(pos + 1);
+        self.shared.pos.store(pos + 1, Relaxed);
 
         // Possibly skip comments and trailing commas.  To preserve
         // serde_json::Error line/column -> byte offset mappings, we do so by
@@ -105,12 +106,12 @@ impl<B: Buffer> Read for Reader<B> {
         match self.mode {
             Mode::Normal => {
                 self.advance_start_from(pos);
-                let src = self.buf.as_bytes();
+                let src = self.buf.as_ref();
                 match ch {
                     b'\"' => self.mode = Mode::String,
                     b',' if self.shared.settings.allow_trailing_comma => {
                         self.advance_start_from(pos+1);
-                        match self.shared.start.get().1 {
+                        match self.shared.start_ch.load(Relaxed) {
                             b']'    => ch = b' ',
                             b'}'    => ch = b' ',
                             _other  => {},
@@ -146,10 +147,4 @@ impl<B: Buffer> Read for Reader<B> {
         out[0] = ch;
         Ok(1)
     }
-}
-
-impl<T: AsRef<[u8]>> Buffer for T {}
-#[doc(hidden)] pub trait Buffer : AsRef<[u8]> {
-    fn as_bytes(&self) -> &[u8] { self.as_ref() }
-    fn len(&self) -> usize { self.as_bytes().len() }
 }

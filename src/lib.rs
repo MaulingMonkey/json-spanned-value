@@ -32,12 +32,12 @@ mod value;                  pub use value::Value;
 
 use serde_json::error as sje;
 use serde::de;
-use std::rc::Rc;
+use std::sync::Arc;
 
 
 /// Read json from a slice of in-memory bytes, with explicit [Settings]
 pub fn from_slice_with_settings<T: de::DeserializeOwned>(buf: &[u8], settings: &Settings) -> sje::Result<T> {
-    let shared = Rc::new(Shared::new(settings));
+    let shared = Arc::new(Shared::new(settings));
     let _shared_stack = SharedStack::push(shared.clone());
     // NOTE:  Our use of from_reader forces us to use DeserializeOwned
     serde_json::from_reader(Reader::new(buf, shared))
