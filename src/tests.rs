@@ -188,3 +188,41 @@ fn do_test_obj(json: &str, expected: Vec<(&str, &str, fn(&Value) -> bool)>) {
     let _parsed1 : Annotated            = super::from_str(json).unwrap();
     let _parsed2 : Spanned<Annotated>   = super::from_str(json).unwrap();
 }
+
+
+
+#[test] fn stream_numbers() {
+    let json = "1 2 3 "; // FIXME: last span slightly off without trailing space (4..4 instead of 4..5)
+    for (expected, actual) in [1,2,3].iter().copied().zip(StreamDeserializer::<&str, spanned::Number>::new(json).into_iter()) {
+        let actual = actual.unwrap();
+        let actual_str = &json[actual.range()];
+        assert_eq!(expected.to_string(), actual_str);
+        assert_eq!(expected.to_string(), actual.into_inner().to_string());
+    }
+}
+
+#[test] fn stream_arrays() {
+    let json = "[1] [2] [3]";
+    for (expected, actual) in ["[1]","[2]","[3]"].iter().copied().zip(StreamDeserializer::<&str, spanned::Array>::new(json).into_iter()) {
+        let actual = actual.unwrap();
+        let actual_str = &json[actual.range()];
+        assert_eq!(expected.to_string(), actual_str);
+        assert_eq!(expected.to_string(), format!("{:?}", actual.into_inner()));
+    }
+}
+
+#[test] fn stream_objects() {
+    let json = "{\"a\":1} {\"b\":2} {\"c\":3}";
+    for ((expected_obj, expected_key, expected_val), actual_obj) in [("{\"a\":1}", "a", 1), ("{\"b\":2}", "b", 2), ("{\"c\":3}", "c", 3)].iter().copied().zip(StreamDeserializer::<&str, spanned::Object>::new(json).into_iter()) {
+        let actual_obj = actual_obj.unwrap();
+
+        assert_eq!(expected_obj, &json[actual_obj.range()]);
+
+        for (actual_key, actual_val) in actual_obj.into_iter() {
+            assert_eq!(&json[actual_key.range()], format!("{:?}", expected_key));
+            assert_eq!(&json[actual_val.range()], format!("{:?}", expected_val));
+            assert_eq!(expected_key, actual_key.into_inner());
+            assert_eq!(expected_val, actual_val.as_number().unwrap().as_u64().unwrap());
+        }
+    }
+}

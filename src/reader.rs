@@ -149,7 +149,7 @@ impl<B: Buffer> Read for Reader<B> {
 }
 
 impl<T: AsRef<[u8]>> Buffer for T {}
-pub(crate) trait Buffer : AsRef<[u8]> {
+#[doc(hidden)] pub trait Buffer : AsRef<[u8]> {
     fn as_bytes(&self) -> &[u8] { self.as_ref() }
     fn len(&self) -> usize { self.as_bytes().len() }
 }

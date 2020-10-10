@@ -17,13 +17,14 @@
 #![forbid(missing_docs)]
 #![forbid(unsafe_code)]
 
-mod error_ext;      pub use error_ext::*;
-mod map;            pub use map::Map;
-mod reader;         pub(crate) use reader::*;
-mod settings;       pub use settings::*;
-mod shared;         pub(crate) use shared::*;
-pub mod spanned;    pub use spanned::Spanned;
-mod value;          pub use value::Value;
+mod error_ext;              pub use error_ext::*;
+mod map;                    pub use map::Map;
+mod reader;                 pub(crate) use reader::*;
+mod settings;               pub use settings::*;
+mod shared;                 pub(crate) use shared::*;
+pub mod spanned;            pub use spanned::Spanned;
+mod stream_deserializer;    pub use stream_deserializer::StreamDeserializer;
+mod value;                  pub use value::Value;
 
 #[cfg(test)] mod tests;
 
